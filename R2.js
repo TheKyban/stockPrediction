@@ -146,7 +146,7 @@ fs.createReadStream('./AAPL.csv')
 
         }
 
-        console.log(all_R2)
+        console.dir(all_R2,{'maxArrayLength':null})
         console.log(all_R2.length)
     })
 
