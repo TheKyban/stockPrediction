@@ -101,12 +101,13 @@ fs.createReadStream('./AAPL.csv')
             errorThresh: 0.02
         })
 
-        
+
         /**
          * Prediction
          */
 
 
-        const prediction = net.forecast(trainingData[0], 1).map(scaleUp)
+        const prediction = net.forecast(trainingData[0], 7).map(scaleUp)
+
         console.log(prediction)
     })
