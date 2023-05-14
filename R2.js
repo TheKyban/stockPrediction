@@ -68,8 +68,8 @@ fs.createReadStream('./AAPL.csv')
          * Spliting scaled_data into chunks
         */
 
-        for (let i = 5; i <= Scaled_Data.length; i += 5) {
-            trainingData.push(Scaled_Data.slice(i - 5, i))
+        for (let i = 30; i <= Scaled_Data.length; i += 30) {
+            trainingData.push(Scaled_Data.slice(i - 30, i))
         }
 
 
@@ -116,10 +116,12 @@ fs.createReadStream('./AAPL.csv')
                 Scaled_Data.push(scaleDown(All_Close_data[i])) // scaling new data and pushing to scaled_data
             }
 
-            for (let i = NumberOfDataSet + 5; i <= NumberOfDataSet + days; i += 5) {
-                trainingData.push(Scaled_Data.slice(i - 5, i))
+            for (let i = NumberOfDataSet + 30; i <= NumberOfDataSet + days; i += 30) {
+                trainingData.push(Scaled_Data.slice(i - 30, i))
             }
 
+
+            
             const next_actual_data = array(next_Data) // getting only array of number
 
 
