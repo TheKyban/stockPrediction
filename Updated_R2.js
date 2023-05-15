@@ -7,10 +7,10 @@ import fs from 'fs'
 
 let RAW_DATA = [];
 let STEPS;
-let SET = 500;
-let DAYS = 22;
+let DAYS = 30;
 let TOTAL_DATA;
-let CHUNK_SIZE = 30;
+let CHUNK_SIZE = 500;
+let lenOfSmallArr = 30;
 let rSquares = []
 
 
@@ -49,6 +49,8 @@ fs.createReadStream('./AAPL.csv').pipe(parse({ delimiter: ',', from_line: 2 }))
      *       ERROR
      * ***********************
      */
+
+
     .on('error', (err) => {
         console.log(err)
     })
@@ -66,39 +68,31 @@ fs.createReadStream('./AAPL.csv').pipe(parse({ delimiter: ',', from_line: 2 }))
     .on('end', () => {
 
         TOTAL_DATA = RAW_DATA.length
-        STEPS = CALCULATE_STEPS(SET, DAYS, TOTAL_DATA)
+        STEPS = CALCULATE_STEPS(CHUNK_SIZE, DAYS, TOTAL_DATA)
 
         let iterated_data = 0;
 
         for (let step = 0; step < STEPS; step++) {
 
             //DATA SET 
-            const DATA_SET = RAW_DATA.slice(iterated_data, iterated_data + SET)
-            iterated_data += SET;
+            const DATA_SET = RAW_DATA.slice(iterated_data, iterated_data + CHUNK_SIZE)
+            iterated_data += DAYS;
 
-            //NORMALIZING The DATA SET
-            const NORMALIZED_DATA = DATA_SET.map(scaleDOWN)
 
             //Training
-            TRAINING(NORMALIZED_DATA)
+            TRAINING(DATA_SET)
 
             //ACTUAL DATA
-            const ACTUAL_DATA = RAW_DATA.slice(iterated_data, iterated_data + DAYS)
-            iterated_data += DAYS;
-            
+            const ACTUAL_DATA = RAW_DATA.slice(iterated_data + CHUNK_SIZE, iterated_data + CHUNK_SIZE + DAYS)
+
             //NORMALIZING ACTUAL DATA
             const NORMALIZED_ACTUAL_DATA = ACTUAL_DATA.map(scaleDOWN)
 
             //FORCASTING
-            const PREDICTED = FORECAST(NORMALIZED_ACTUAL_DATA, DAYS)
+            const PREDICTED_DATA = FORECAST(NORMALIZED_ACTUAL_DATA, DAYS)
 
 
-            //CLOSE VALUES
-            const ACTUAL_CLOSE_VALUES = ACTUAL_DATA.map(i => i.close)
-            const PREDICTED_CLOSE_VALUES = PREDICTED.map(i => i.close)
-
-            //R Square
-            const rSquare = score(ACTUAL_CLOSE_VALUES, PREDICTED_CLOSE_VALUES)
+            const rSquare = rSQUARE(ACTUAL_DATA, PREDICTED_DATA)
 
             console.log(rSquare)
 
@@ -114,27 +108,29 @@ fs.createReadStream('./AAPL.csv').pipe(parse({ delimiter: ',', from_line: 2 }))
     })
 
 
-const CALCULATE_STEPS = (set, days, totalDataSet) => {
+const CALCULATE_STEPS = (chunk, days, totalDataSet) => {
 
     /**
-     *           totalDataSet
-     * STEP  =  ----------------
-     *           set  +  days
+     *           totalDataSet - chunk
+     * STEP  =  ------------------------
+     *                    days
      */
 
-    return Math.floor(totalDataSet / (set + days))
+    return Math.floor((totalDataSet - chunk) / days)
 }
 
 
 const TRAINING = (DATA) => {
+    //NORMALIZING The DATA SET
+    const NORMALIZED_DATA = DATA.map(scaleDOWN)
 
-    const CHUNKED_DATA = []
+    const arrOfData = []
 
-    for (let cSize = CHUNK_SIZE; cSize <= DATA.length; cSize += CHUNK_SIZE) {
-        CHUNKED_DATA.push(DATA.slice(cSize - CHUNK_SIZE, cSize))
+    for (let i = lenOfSmallArr; i <= NORMALIZED_DATA.length; i += lenOfSmallArr) {
+        arrOfData.push(NORMALIZED_DATA.slice(i - lenOfSmallArr, i))
     }
 
-    net.train(CHUNKED_DATA, {
+    net.train(arrOfData, {
         learningRate: 0.05,
         errorThresh: 0.02
     })
@@ -146,6 +142,15 @@ const FORECAST = (ACTUAL_DATA, DAYS) => {
     return predicted
 }
 
+const rSQUARE = (ACTUAL_DATA, PREDICTED_DATA) => {
+    //CLOSE VALUES
+    const ACTUAL_CLOSE_VALUES = ACTUAL_DATA.map(i => i.close)
+    const PREDICTED_CLOSE_VALUES = PREDICTED_DATA.map(i => i.close)
+
+    //R Square
+    const rSquare = score(ACTUAL_CLOSE_VALUES, PREDICTED_CLOSE_VALUES)
+    return rSquare
+}
 
 const scaleUP = (data) => {
     return {
@@ -159,3 +164,14 @@ const scaleDOWN = (data) => {
         close: data.close / 138
     }
 }
+
+
+/**
+ *  iteration set(500) days(30)
+ *  1st       0-500     501-530
+ *  2nd       22-522     522-552
+ *  3nd       44-544     544-574
+ */
+
+
+// Steps=math.floor((totaldataset-chunksize)/days)
